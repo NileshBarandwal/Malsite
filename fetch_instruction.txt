@@ -1,0 +1,191 @@
+How to download the source code (JS,CSS and images) of a website through its URL (Web Scraping) with Node.js
+
+Requirements
+To download all the resources from a website, we are going to use the website-scraper module. This module allows you to download an entire website (or single webpages) to a local directory (including all the resources css, images, js, fonts etc.). 
+
+Install the module in your project executing the following command in the terminal:
+
+npm install website-scraper
+
+Note
+Dynamic websites (where content is loaded by js) may be saved not correctly because website-scraper doesn't execute js, it only parses http responses for html and css files.
+
+Visit:https://github.com/website-scraper/node-website-scraper
+
+1. Download a single page
+The scrape function returns a Promise that makes requests to all the providen urls and saves all files found with sources to directory.
+The resources will be organized into folders according to the type of resources (css, images or scripts) inside the providen directory path. 
+The following script will download the homepage of the node.js website:
+
+//////////////////////////////////////////////////////
+const scrape = require('website-scraper');
+
+let options = {
+    urls: ['https://nodejs.org/'],
+    directory: './node-homepage',
+};
+
+scrape(options).then((result) => {
+    console.log("Website succesfully downloaded");
+}).catch((err) => {
+    console.log("An error ocurred", err);
+});
+///////////////////////////////////////////////////////////
+
+2. Download multiple pages
+If you're downloading multiple pages of a website, you should provide them simultaneously in the same script, scraper is smart enough to know that a resource shouldn't be downloaded twice (but only if the resource has been already downloaded from the same website in another page) and it will download all the markup files but not the resources that already exist.
+
+In this example, we are going to download 3 pages of the node.js website (index, about and blog) specified in the urls property. The content will be saved in the node-website folder (where the script is executed), if it doesn't exists it will be created. To be more organized, we are going to sort out every type of resources manually in different folders respectively (images, javascript, css and fonts). The sources property specifies with an array of objects to load, specifies selectors and attribute values to select files for loading.
+
+This script is useful if you want specifically some web pages:
+
+/////////////////////////////////////////////////////////////
+const scrape = require('website-scraper');
+
+scrape({
+    urls: [
+        'https://nodejs.org/', // Will be saved with default filename 'index.html'
+        {
+            url: 'http://nodejs.org/about',
+            filename: 'about.html'
+        },
+        {
+            url: 'http://blog.nodejs.org/',
+            filename: 'blog.html'
+        }
+    ],
+    directory: './node-website',
+    subdirectories: [
+        {
+            directory: 'img',
+            extensions: ['.jpg', '.png', '.svg']
+        },
+        {
+            directory: 'js',
+            extensions: ['.js']
+        },
+        {
+            directory: 'css',
+            extensions: ['.css']
+        },
+        {
+            directory: 'fonts',
+            extensions: ['.woff','.ttf']
+        }
+    ],
+    sources: [
+        {
+            selector: 'img',
+            attr: 'src'
+        },
+        {
+            selector: 'link[rel="stylesheet"]',
+            attr: 'href'
+        },
+        {
+            selector: 'script',
+            attr: 'src'
+        }
+    ]
+}).then(function (result) {
+    // Outputs HTML 
+    // console.log(result);
+    console.log("Content succesfully downloaded");
+}).catch(function (err) {
+    console.log(err);
+});
+/////////////////////////////////////////////////////////////
+
+3. Recursive downloads
+Imagine that you don't need only specific web pages from a website, but all the pages of it. A way to do it, is to use the previous script and specify manually every URL of the website that you can get to download it, however this can be counterproductive because it will take a lot of time and you will probably overlook some URLs. That's why Scraper offers the recursive download feature that allows you to follow all the links from a page and the links from that page and so on. Obviously, that would lead to a very very long (and almost infinite) loop that you can limit with the max allowed depth (maxDepth property):
+
+/////////////////////////////////////////////////////////////
+const scrape = require('website-scraper');
+
+let options = {
+    urls: ['https://nodejs.org/'],
+    directory: './node-homepage',
+    // Enable recursive download
+    recursive: true,
+    // Follow only the links from the first page (index)
+    // then the links from other pages won't be followed
+    maxDepth: 1
+};
+
+scrape(options).then((result) => {
+    console.log("Webpages succesfully downloaded");
+}).catch((err) => {
+    console.log("An error ocurred", err);
+});
+/////////////////////////////////////////////////////////////
+
+FILTER EXTERNAL URLS
+As expected in any kind of website, there will be external URLs that don't belong to the website that you want to copy. To prevent that those pages are downloaded too, you can filter it only if the URL matches with the one you use:
+
+/////////////////////////////////////////////////////////////
+const scrape = require('website-scraper');
+
+const websiteUrl = 'https://nodejs.org';
+
+let options = {
+    urls: [websiteUrl],
+    directory: './node-homepage',
+    // Enable recursive download
+    recursive: true,
+    // Follow only the links from the first page (index)
+    // then the links from other pages won't be followed
+    maxDepth: 1,
+    urlFilter: function(url){
+        
+        // If url contains the domain of the website, then continue:
+        // https://nodejs.org with https://nodejs.org/en/example.html
+        if(url.indexOf(websiteUrl) === 0){
+            console.log(`URL ${url} matches ${websiteUrl}`);
+            return true;
+        }
+        
+        return false;
+    },
+};
+
+scrape(options).then((result) => {
+    console.log("Webpages succesfully downloaded");
+}).catch((err) => {
+    console.log("An error ocurred", err);
+});
+/////////////////////////////////////////////////////////////
+
+4. Download an entire website
+Note
+This task require much time, so be patient.
+
+If you want to download an entire website, you can use the recursive download module and increase the max allowed depth to a reasonable number (in this example not so reasonable with 50, but whatever): 
+
+////////////////////////////////////////////////////////////
+// Downloads all the crawlable files of example.com.
+// The files are saved in the same structure as the structure of the website, by using the `bySiteStructure` filenameGenerator.
+// Links to other websites are filtered out by the urlFilter
+const scrape = require('website-scraper');
+const websiteUrl = 'https://nodejs.org/';
+
+scrape({
+    urls: [websiteUrl],
+    urlFilter: function (url) {
+        return url.indexOf(websiteUrl) === 0;
+    },
+    recursive: true,
+    maxDepth: 50,
+    prettifyUrls: true,
+    filenameGenerator: 'bySiteStructure',
+    directory: './node-website'
+}).then((data) => {
+    console.log("Entire website succesfully downloaded");
+}).catch((err) => {
+    console.log("An error ocurred", err);
+});
+////////////////////////////////////////////////////////////
+
+Final recommendations
+If the CSS or JS code of the website are minified (and probably all of them will be), we recommend you to use a beautifier mode for the language (cssbeautify for css or js-beautify for Javascript) in order to pretty print and make the code more readable (not in the same way that the original code does, but acceptable). 
+
+Happy coding !
