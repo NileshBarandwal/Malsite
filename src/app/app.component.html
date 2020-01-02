@@ -1,0 +1,23 @@
+<mat-toolbar color="primary" class="navbar">
+<div>Malsite</div>
+<div>
+  <span>Home</span>
+  <span>About</span>
+  <span>Services</span>
+</div>
+</mat-toolbar>
+
+<section>
+  <mat-card class="card">
+    <div>
+      Malsite is used to detect malware.
+    </div>
+      <mat-form-field class="example-form-field">
+      <span><input class="url" matInput type="text" placeholder="Enter URL"></span>
+        <!-- <button mat-button *ngIf="value" matSuffix mat-icon-button aria-label="Clear" (click)="value=''"> 
+          <mat-icon>close</mat-icon> 
+        </button> -->
+      </mat-form-field>
+      <span><button mat-raised-button color="primary">Scan<mat-icon>forwards</mat-icon></button></span>
+  </mat-card>
+</section>
